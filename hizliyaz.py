@@ -1,356 +1,435 @@
 import tkinter as tk
 from tkinter import font as tkfont
-import time
-import random
-import sys
-import os
+import time, random, sys, os, winsound
 
-METINLER = [
-    "Hız ve doğruluk birlikte gelişir, biri olmadan diğeri eksik kalır.",
-    "Klavye bir enstrümandır, onu çalmayı öğrenmek zaman alır.",
-    "Her gün biraz daha hızlı yazmak, büyük bir fark yaratır.",
-    "Parmaklarını doğru konumlandır, geri kalanı kendiliğinden gelir.",
-    "Hata yapmaktan korkma, önemli olan devam etmektir.",
-    "Yazma hızı sabırla değil, tekrarla artar.",
-    "On parmak yazma tekniğini öğrenen kimse pişman olmaz.",
-    "Gözlerin klavyeden değil ekrandan ayrılmamalı.",
-    "Ritim bulmak hız kazanmaktan daha önemlidir.",
-    "Doğruluk yüzde doksanın altına düştüğünde yavaşla.",
-    "Teknoloji değişir ama klavye kullanımı hep gerekli kalır.",
-    "Sabah on dakika pratik, akşam fark edilir ilerleme demektir.",
-    "Yazarken nefes al, kasılmış eller yavaş hareket eder.",
-    "En iyi yazıcılar en çok hata yapanlardır başlangıçta.",
-    "Kelimeyi değil hareketi öğren, parmaklar kendiliğinden bulur.",
+BG, PANEL, BORDER = "#0a0a0f", "#13131a", "#1e1e2e"
+ACCENT, ACCENT2 = "#64c8ff", "#a78bfa"
+TEXT_DIM, TEXT_MID, TEXT_BRIGHT = "#4a4a6a", "#8888aa", "#e2e8f0"
+GREEN, RED, YELLOW = "#4ade80", "#f87171", "#fbbf24"
+
+SEVIYELER = [
+    {"ad": "1 — Temel Harfler",      "tip": "harf",    "chars": "asdf jkl;", "uzunluk": 20},
+    {"ad": "2 — Sol El",             "tip": "harf",    "chars": "asdfgqwert", "uzunluk": 25},
+    {"ad": "3 — Sağ El",             "tip": "harf",    "chars": "hjkl;yuiop", "uzunluk": 25},
+    {"ad": "4 — İki El",             "tip": "harf",    "chars": "asdfghjkl;", "uzunluk": 30},
+    {"ad": "5 — Büyük Harf",         "tip": "harf",    "chars": "AaBbCcDdEeFf", "uzunluk": 30},
+    {"ad": "6 — Rakamlar",           "tip": "harf",    "chars": "1234567890", "uzunluk": 30},
+    {"ad": "7 — Noktalama",          "tip": "harf",    "chars": ".,;:!?", "uzunluk": 25},
+    {"ad": "8 — Kısa Kelimeler",     "tip": "kelime",  "kelimeler": ["al","ver","git","gel","bak","yaz","oku","bil","gör","tut"], "uzunluk": 40},
+    {"ad": "9 — Orta Kelimeler",     "tip": "kelime",  "kelimeler": ["hızlı","doğru","klavye","yazma","pratik","tekrar","başar","öğren","geliş","çalış"], "uzunluk": 50},
+    {"ad": "10 — Uzun Kelimeler",    "tip": "kelime",  "kelimeler": ["bilgisayar","programlama","geliştirme","mükemmellik","başarılarım","öğreniyorum","çalışıyorum"], "uzunluk": 60},
+    {"ad": "11 — Kısayollar",        "tip": "kisayol", "kisayollar": ["Ctrl+C","Ctrl+V","Ctrl+Z","Ctrl+X","Ctrl+S","Ctrl+A","Alt+F4","Ctrl+W"], "uzunluk": 40},
+    {"ad": "12 — Terminal",          "tip": "kelime",  "kelimeler": ["ls -la","cd ..","grep -r","git push","pip install","mkdir -p","chmod +x","sudo apt"], "uzunluk": 60},
+    {"ad": "13 — Türkçe Cümleler",   "tip": "cumle",   "uzunluk": 70},
+    {"ad": "14 — İngilizce Mix",     "tip": "kelime",  "kelimeler": ["function","variable","import","return","class","object","method","string","boolean","integer"], "uzunluk": 70},
+    {"ad": "15 — Meydan Okuma", "tip": "cumle",   "uzunluk": 100},
 ]
 
-BG = "#0a0a0f"
-PANEL = "#13131a"
-BORDER = "#1e1e2e"
-ACCENT = "#64c8ff"
-ACCENT2 = "#a78bfa"
-TEXT_DIM = "#4a4a6a"
-TEXT_MID = "#8888aa"
-TEXT_BRIGHT = "#e2e8f0"
-GREEN = "#4ade80"
-RED = "#f87171"
-YELLOW = "#fbbf24"
+CUMLELER_TR = [
+    "Hız ve doğruluk birlikte gelişir biri olmadan diğeri eksik kalır.",
+    "Klavye bir enstrümandır onu çalmayı öğrenmek zaman alır.",
+    "Her gün biraz daha hızlı yazmak büyük bir fark yaratır.",
+    "Parmaklarını doğru konumlandır geri kalanı kendiliğinden gelir.",
+    "On parmak yazma tekniğini öğrenen kimse pişman olmaz.",
+    "Ritim bulmak hız kazanmaktan daha önemlidir.",
+    "Doğruluk yüzde doksanın altına düştüğünde yavaşla.",
+    "Sabah on dakika pratik akşam fark edilir ilerleme demektir.",
+]
+
+OZEL_METINLER = []
 
 
-class HizliYaz:
+def metin_uret(seviye):
+    tip = seviye["tip"]
+    uzunluk = seviye["uzunluk"]
+
+    if tip == "harf":
+        chars = seviye["chars"].replace(" ", "")
+        parcalar = []
+        while sum(len(p) for p in parcalar) < uzunluk:
+            n = random.randint(2, 5)
+            parcalar.append("".join(random.choice(chars) for _ in range(n)))
+        return " ".join(parcalar)[:uzunluk].strip()
+
+    if tip == "kelime":
+        kelimeler = seviye["kelimeler"]
+        secilen = []
+        while sum(len(k) for k in secilen) + len(secilen) < uzunluk:
+            secilen.append(random.choice(kelimeler))
+        return " ".join(secilen)
+
+    if tip == "kisayol":
+        kisayollar = seviye["kisayollar"]
+        secilen = []
+        while sum(len(k) for k in secilen) + len(secilen) < uzunluk:
+            secilen.append(random.choice(kisayollar))
+        return " ".join(secilen)
+
+    if tip == "cumle":
+        if OZEL_METINLER:
+            return random.choice(OZEL_METINLER)
+        return random.choice(CUMLELER_TR)
+
+    return ""
+
+
+def ses_dogru():
+    try:
+        winsound.Beep(1200, 40)
+    except Exception:
+        pass
+
+
+def ses_yanlis():
+    try:
+        winsound.Beep(300, 80)
+    except Exception:
+        pass
+
+
+class App:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title("HızlıYaz")
         self.root.configure(bg=BG)
-        self.root.geometry("900x620")
-        self.root.minsize(760, 520)
+        self.root.geometry("960x640")
+        self.root.minsize(800, 560)
 
-        icon_path = self._resource("icon.ico")
+        icon_path = self._res("icon.ico")
         if os.path.exists(icon_path):
-            self.root.iconbitmap(icon_path)
+            try:
+                self.root.iconbitmap(icon_path)
+            except Exception:
+                pass
 
         self._fonts()
-        self._state()
-        self._build_ui()
+        self.mevcut_seviye = 0
+        self.tamamlanan = set()
+        self._menu()
         self.root.mainloop()
 
-    def _resource(self, name):
+    def _res(self, name):
         base = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
         return os.path.join(base, name)
 
     def _fonts(self):
-        self.f_mono = tkfont.Font(family="Consolas", size=15)
-        self.f_mono_lg = tkfont.Font(family="Consolas", size=18, weight="bold")
-        self.f_ui = tkfont.Font(family="Segoe UI", size=11)
-        self.f_ui_sm = tkfont.Font(family="Segoe UI", size=9)
-        self.f_title = tkfont.Font(family="Segoe UI", size=22, weight="bold")
-        self.f_stat = tkfont.Font(family="Consolas", size=26, weight="bold")
-        self.f_stat_lbl = tkfont.Font(family="Segoe UI", size=9)
-
-    def _state(self):
-        self.mode = "menu"
-        self.ozel_metinler = []
-        self.hedef_metin = ""
-        self.baslangic = None
-        self.bitti = False
-        self.yanlis_pos = set()
-
-    def _build_ui(self):
-        self.container = tk.Frame(self.root, bg=BG)
-        self.container.pack(fill="both", expand=True)
-        self._goster_menu()
+        self.fm = tkfont.Font(family="Consolas", size=15)
+        self.fm_lg = tkfont.Font(family="Consolas", size=17, weight="bold")
+        self.fu = tkfont.Font(family="Segoe UI", size=11)
+        self.fu_sm = tkfont.Font(family="Segoe UI", size=9)
+        self.fu_lg = tkfont.Font(family="Segoe UI", size=13, weight="bold")
+        self.f_title = tkfont.Font(family="Segoe UI", size=20, weight="bold")
+        self.f_stat = tkfont.Font(family="Consolas", size=24, weight="bold")
 
     def _temizle(self):
-        for w in self.container.winfo_children():
+        for w in self.root.winfo_children():
             w.destroy()
 
-    def _goster_menu(self):
-        self._temizle()
-        self.mode = "menu"
-
-        header = tk.Frame(self.container, bg=BG)
-        header.pack(pady=(48, 0))
-
-        tk.Label(header, text="⚡", font=tkfont.Font(size=36), bg=BG, fg=ACCENT).pack()
-        tk.Label(header, text="HızlıYaz", font=self.f_title, bg=BG, fg=TEXT_BRIGHT).pack(pady=(4, 2))
-        tk.Label(header, text="Yazma hızını ve doğruluğunu geliştir", font=self.f_ui_sm, bg=BG, fg=TEXT_DIM).pack()
-
-        sep = tk.Frame(self.container, bg=BORDER, height=1)
-        sep.pack(fill="x", padx=60, pady=32)
-
-        ozel_frame = tk.Frame(self.container, bg=PANEL, bd=0, highlightthickness=1, highlightbackground=BORDER)
-        ozel_frame.pack(padx=60, fill="x")
-
-        header_f = tk.Frame(ozel_frame, bg=PANEL)
-        header_f.pack(fill="x", padx=20, pady=(16, 8))
-        tk.Label(header_f, text="Yeni hızlı yazma yeri", font=self.f_ui, bg=PANEL, fg=TEXT_MID).pack(anchor="w")
-        tk.Label(header_f, text="Buraya kendi metinlerini gir veya hazır listeden başla", font=self.f_ui_sm, bg=PANEL, fg=TEXT_DIM).pack(anchor="w")
-
-        text_wrap = tk.Frame(ozel_frame, bg=PANEL)
-        text_wrap.pack(fill="x", padx=20, pady=(0, 8))
-
-        self.ozel_text = tk.Text(
-            text_wrap, height=5, font=self.f_mono,
-            bg="#0d0d14", fg=TEXT_BRIGHT,
-            insertbackground=ACCENT,
-            relief="flat", bd=0,
-            padx=12, pady=10,
-            wrap="word",
-            highlightthickness=1,
-            highlightbackground=BORDER,
-            highlightcolor=ACCENT,
-        )
-        self.ozel_text.pack(fill="x")
-        self.ozel_text.insert("1.0", "\n".join(self.ozel_metinler) if self.ozel_metinler else "")
-
-        placeholder = "Her satıra bir metin gir. Boş bırakırsan hazır metinler kullanılır."
-        if not self.ozel_metinler:
-            self.ozel_text.insert("1.0", placeholder)
-            self.ozel_text.config(fg=TEXT_DIM)
-
-            def on_focus_in(e):
-                if self.ozel_text.get("1.0", "end-1c") == placeholder:
-                    self.ozel_text.delete("1.0", "end")
-                    self.ozel_text.config(fg=TEXT_BRIGHT)
-
-            def on_focus_out(e):
-                if not self.ozel_text.get("1.0", "end-1c").strip():
-                    self.ozel_text.insert("1.0", placeholder)
-                    self.ozel_text.config(fg=TEXT_DIM)
-
-            self.ozel_text.bind("<FocusIn>", on_focus_in)
-            self.ozel_text.bind("<FocusOut>", on_focus_out)
-
-        btn_frame = tk.Frame(ozel_frame, bg=PANEL)
-        btn_frame.pack(fill="x", padx=20, pady=(4, 20))
-
-        self._btn(btn_frame, "⚡  Eğitimi Başlat", self._baslat, accent=True).pack(side="left")
-        tk.Label(btn_frame, text="veya", font=self.f_ui_sm, bg=PANEL, fg=TEXT_DIM).pack(side="left", padx=12)
-        self._btn(btn_frame, "Hazır metinler", lambda: self._baslat(hazir=True)).pack(side="left")
-
-    def _btn(self, parent, text, cmd, accent=False):
+    def _btn(self, parent, text, cmd, accent=False, sm=False):
         bg = ACCENT if accent else PANEL
         fg = "#0a0a0f" if accent else TEXT_MID
-        hover_bg = "#7dd3fc" if accent else BORDER
-
-        b = tk.Label(
-            parent, text=text, font=self.f_ui,
-            bg=bg, fg=fg,
-            padx=18, pady=8,
-            cursor="hand2",
-            relief="flat",
-            bd=0,
-            highlightthickness=1 if not accent else 0,
-            highlightbackground=BORDER,
-        )
+        hbg = "#7dd3fc" if accent else BORDER
+        f = self.fu_sm if sm else self.fu
+        b = tk.Label(parent, text=text, font=f, bg=bg, fg=fg,
+                     padx=14, pady=7 if not sm else 4,
+                     cursor="hand2", relief="flat",
+                     highlightthickness=1 if not accent else 0,
+                     highlightbackground=BORDER)
         b.bind("<Button-1>", lambda e: cmd())
-        b.bind("<Enter>", lambda e: b.config(bg=hover_bg))
+        b.bind("<Enter>", lambda e: b.config(bg=hbg))
         b.bind("<Leave>", lambda e: b.config(bg=bg))
         return b
 
-    def _baslat(self, hazir=False):
-        raw = self.ozel_text.get("1.0", "end-1c").strip()
-        placeholder = "Her satıra bir metin gir. Boş bırakırsan hazır metinler kullanılır."
-
-        if raw and raw != placeholder and not hazir:
-            self.ozel_metinler = [l.strip() for l in raw.splitlines() if l.strip()]
-            havuz = self.ozel_metinler
-        else:
-            havuz = METINLER
-
-        self.hedef_metin = random.choice(havuz)
-        self._goster_yaz()
-
-    def _goster_yaz(self):
+    # ── MENÜ ──────────────────────────────────────────────────────────────
+    def _menu(self):
         self._temizle()
-        self.mode = "yaz"
+
+        nav = tk.Frame(self.root, bg=PANEL, height=48)
+        nav.pack(fill="x")
+        nav.pack_propagate(False)
+        tk.Label(nav, text=" HızlıYaz", font=self.fu_lg, bg=PANEL, fg=ACCENT).pack(side="left", padx=20, pady=12)
+
+        body = tk.Frame(self.root, bg=BG)
+        body.pack(fill="both", expand=True, padx=40, pady=24)
+
+        # Sol — seviyeler
+        sol = tk.Frame(body, bg=BG)
+        sol.pack(side="left", fill="y")
+
+        tk.Label(sol, text="Alıştırmalar", font=self.fu_lg, bg=BG, fg=TEXT_BRIGHT).pack(anchor="w", pady=(0, 12))
+
+        canvas = tk.Canvas(sol, bg=BG, highlightthickness=0, width=320)
+        canvas.pack(side="left", fill="both", expand=True)
+        scroll = tk.Scrollbar(sol, orient="vertical", command=canvas.yview)
+        scroll.pack(side="right", fill="y")
+        canvas.configure(yscrollcommand=scroll.set)
+
+        liste = tk.Frame(canvas, bg=BG)
+        canvas.create_window((0, 0), window=liste, anchor="nw")
+
+        for i, sev in enumerate(SEVIYELER):
+            tamamlandi = i in self.tamamlanan
+            aktif = i == self.mevcut_seviye
+            kilidi_acik = i <= self.mevcut_seviye
+
+            satirbg = PANEL if aktif else BG
+            fg = TEXT_BRIGHT if kilidi_acik else TEXT_DIM
+
+            satir = tk.Frame(liste, bg=satirbg, pady=6,
+                             highlightthickness=1,
+                             highlightbackground=ACCENT if aktif else BORDER)
+            satir.pack(fill="x", pady=2, padx=2)
+
+            ikon = "✓" if tamamlandi else ("▶" if aktif else ("○" if kilidi_acik else "🔒"))
+            ikon_fg = GREEN if tamamlandi else (ACCENT if aktif else fg)
+
+            tk.Label(satir, text=ikon, font=self.fu, bg=satirbg, fg=ikon_fg, width=2).pack(side="left", padx=(8, 4))
+            tk.Label(satir, text=sev["ad"], font=self.fu_sm, bg=satirbg, fg=fg).pack(side="left", padx=4)
+
+            if kilidi_acik:
+                idx = i
+                satir.bind("<Button-1>", lambda e, x=idx: self._baslat_alistirma(x))
+                for child in satir.winfo_children():
+                    child.bind("<Button-1>", lambda e, x=idx: self._baslat_alistirma(x))
+                satir.config(cursor="hand2")
+
+        liste.update_idletasks()
+        canvas.config(scrollregion=canvas.bbox("all"))
+
+        # ayrac
+        tk.Frame(body, bg=BORDER, width=1).pack(side="left", fill="y", padx=24)
+
+        # Sağ — hızlı test + özel
+        sag = tk.Frame(body, bg=BG)
+        sag.pack(side="left", fill="both", expand=True)
+
+        tk.Label(sag, text="Hızlı Test", font=self.fu_lg, bg=BG, fg=TEXT_BRIGHT).pack(anchor="w", pady=(0, 8))
+        tk.Label(sag, text="Tüm seviyeleri tamamlayınca aktif olur", font=self.fu_sm, bg=BG, fg=TEXT_DIM).pack(anchor="w", pady=(0, 12))
+
+        hizli_fg = TEXT_MID if len(self.tamamlanan) == 15 else TEXT_DIM
+        hizli_f = self._btn(sag, " Testi Başlat",
+                            self._hizli_test if len(self.tamamlanan) == 15 else lambda: None,
+                            accent=len(self.tamamlanan) == 15)
+        hizli_f.pack(anchor="w")
+
+        tk.Frame(sag, bg=BORDER, height=1).pack(fill="x", pady=20)
+
+        tk.Label(sag, text="Kendi Metinlerin", font=self.fu_lg, bg=BG, fg=TEXT_BRIGHT).pack(anchor="w", pady=(0, 8))
+        tk.Label(sag, text="Her satıra bir metin boş bırakırsan hazır metinler kullanılır", font=self.fu_sm, bg=BG, fg=TEXT_DIM).pack(anchor="w", pady=(0, 8))
+
+        self.ozel_text = tk.Text(sag, height=6, font=self.fm,
+                                 bg=PANEL, fg=TEXT_BRIGHT, insertbackground=ACCENT,
+                                 relief="flat", padx=12, pady=10, wrap="word",
+                                 highlightthickness=1, highlightbackground=BORDER)
+        self.ozel_text.pack(fill="x")
+        if OZEL_METINLER:
+            self.ozel_text.insert("1.0", "\n".join(OZEL_METINLER))
+
+        self._btn(sag, "Kaydet", self._kaydet_ozel, sm=True).pack(anchor="w", pady=(8, 0))
+
+    def _kaydet_ozel(self):
+        global OZEL_METINLER
+        raw = self.ozel_text.get("1.0", "end-1c").strip()
+        OZEL_METINLER = [l.strip() for l in raw.splitlines() if l.strip()]
+
+    # ── ALISTIRMA ─────────────────────────────────────────────────────────
+    def _baslat_alistirma(self, idx):
+        self.mevcut_seviye = idx
+        sev = SEVIYELER[idx]
+        self._yazma_ekrani(metin_uret(sev), mod="alistirma", seviye_idx=idx)
+
+    def _hizli_test(self):
+        if OZEL_METINLER:
+            metin = random.choice(OZEL_METINLER)
+        else:
+            metin = random.choice(CUMLELER_TR)
+        self._yazma_ekrani(metin, mod="test")
+
+    def _yazma_ekrani(self, hedef, mod, seviye_idx=None):
+        self._temizle()
+
+        self.hedef = hedef
         self.baslangic = None
         self.bitti = False
-        self.yanlis_pos = set()
+        self.son_uzunluk = 0
 
-        top = tk.Frame(self.container, bg=BG)
-        top.pack(fill="x", padx=40, pady=(28, 0))
+        # Nav
+        nav = tk.Frame(self.root, bg=PANEL, height=48)
+        nav.pack(fill="x")
+        nav.pack_propagate(False)
 
-        self._stat_blok(top, "DAK/KW", "—", "hiz_lbl").pack(side="left", padx=(0, 24))
-        self._stat_blok(top, "DOĞRULUK", "—", "dogru_lbl").pack(side="left", padx=(0, 24))
-        self._stat_blok(top, "SÜRE", "0s", "sure_lbl").pack(side="left")
+        geri = tk.Label(nav, text="← Geri", font=self.fu_sm, bg=PANEL, fg=TEXT_DIM, cursor="hand2")
+        geri.pack(side="left", padx=16, pady=14)
+        geri.bind("<Button-1>", lambda e: self._menu())
 
-        geri = tk.Label(top, text="← Geri", font=self.f_ui_sm, bg=BG, fg=TEXT_DIM, cursor="hand2")
-        geri.pack(side="right")
-        geri.bind("<Button-1>", lambda e: self._goster_menu())
-        geri.bind("<Enter>", lambda e: geri.config(fg=TEXT_MID))
-        geri.bind("<Leave>", lambda e: geri.config(fg=TEXT_DIM))
+        baslik = SEVIYELER[seviye_idx]["ad"] if seviye_idx is not None else "Hızlı Test"
+        tk.Label(nav, text=baslik, font=self.fu_lg, bg=PANEL, fg=TEXT_BRIGHT).pack(side="left", padx=8)
 
-        sep = tk.Frame(self.container, bg=BORDER, height=1)
-        sep.pack(fill="x", padx=40, pady=20)
+        # Stats
+        stat_f = tk.Frame(self.root, bg=BG)
+        stat_f.pack(fill="x", padx=40, pady=(20, 0))
 
-        metin_wrap = tk.Frame(self.container, bg=PANEL, highlightthickness=1, highlightbackground=BORDER)
+        self.hiz_lbl = self._stat(stat_f, "DAK/KW", "—")
+        self.dogru_lbl = self._stat(stat_f, "DOĞRULUK", "—")
+        self.sure_lbl = self._stat(stat_f, "SÜRE", "0s")
+        self.hata_lbl = self._stat(stat_f, "HATA", "0")
+
+        # Hedef metin
+        tk.Frame(self.root, bg=BORDER, height=1).pack(fill="x", padx=40, pady=16)
+
+        metin_wrap = tk.Frame(self.root, bg=PANEL,
+                              highlightthickness=1, highlightbackground=BORDER)
         metin_wrap.pack(fill="x", padx=40)
 
-        self.metin_canvas = tk.Text(
-            metin_wrap,
-            font=self.f_mono_lg,
-            bg=PANEL, fg=TEXT_DIM,
-            relief="flat", bd=0,
-            padx=24, pady=20,
-            wrap="word",
-            cursor="arrow",
-            state="normal",
-            height=4,
-        )
-        self.metin_canvas.pack(fill="x")
-        self.metin_canvas.insert("1.0", self.hedef_metin)
-        self.metin_canvas.tag_config("done", fg=TEXT_BRIGHT)
-        self.metin_canvas.tag_config("current", fg=ACCENT, underline=True)
-        self.metin_canvas.tag_config("wrong", fg=RED, background="#2d0f0f")
-        self.metin_canvas.tag_config("pending", fg=TEXT_DIM)
-        self.metin_canvas.config(state="disabled")
+        self.metin_c = tk.Text(metin_wrap, font=self.fm_lg, bg=PANEL, fg=TEXT_DIM,
+                               relief="flat", padx=20, pady=16, wrap="word",
+                               cursor="arrow", state="normal", height=4)
+        self.metin_c.pack(fill="x")
+        self.metin_c.insert("1.0", self.hedef)
+        self.metin_c.tag_config("done", fg=GREEN)
+        self.metin_c.tag_config("current", fg=ACCENT, underline=True)
+        self.metin_c.tag_config("wrong", fg=RED, background="#2d0f0f")
+        self.metin_c.tag_config("pending", fg=TEXT_DIM)
+        self.metin_c.config(state="disabled")
+        self._renkle(0, set())
 
-        self._renkle_metin(0)
+        # Giriş
+        giris_f = tk.Frame(self.root, bg=BG)
+        giris_f.pack(fill="x", padx=40, pady=(16, 0))
 
-        giris_frame = tk.Frame(self.container, bg=BG)
-        giris_frame.pack(fill="x", padx=40, pady=(16, 0))
+        tk.Label(giris_f, text="Buraya yaz →", font=self.fu_sm, bg=BG, fg=TEXT_DIM).pack(anchor="w", pady=(0, 6))
 
-        tk.Label(giris_frame, text="Yazmaya başla →", font=self.f_ui_sm, bg=BG, fg=TEXT_DIM).pack(anchor="w", pady=(0, 6))
-
-        self.giris = tk.Text(
-            giris_frame, height=3, font=self.f_mono,
-            bg=PANEL, fg=TEXT_BRIGHT,
-            insertbackground=ACCENT,
-            relief="flat", bd=0,
-            padx=16, pady=12,
-            wrap="word",
-            highlightthickness=1,
-            highlightbackground=BORDER,
-            highlightcolor=ACCENT,
-        )
+        self.giris = tk.Text(giris_f, height=3, font=self.fm,
+                             bg=PANEL, fg=TEXT_BRIGHT, insertbackground=ACCENT,
+                             relief="flat", padx=16, pady=12, wrap="word",
+                             highlightthickness=1, highlightbackground=BORDER,
+                             highlightcolor=ACCENT)
         self.giris.pack(fill="x")
-        self.giris.bind("<KeyRelease>", self._kontrol)
+        self.giris.bind("<KeyRelease>", lambda e: self._kontrol(mod, seviye_idx))
         self.giris.focus_set()
 
-        self._sure_timer()
+        self._seviye_idx = seviye_idx
+        self._mod = mod
+        self._hata_sayisi = 0
+        self._sure_tick()
 
-    def _stat_blok(self, parent, baslik, deger, attr):
+    def _stat(self, parent, baslik, deger):
         f = tk.Frame(parent, bg=BG)
-        lbl_d = tk.Label(f, text=deger, font=self.f_stat, bg=BG, fg=ACCENT)
-        lbl_d.pack(anchor="w")
-        tk.Label(f, text=baslik, font=self.f_stat_lbl, bg=BG, fg=TEXT_DIM).pack(anchor="w")
-        setattr(self, attr, lbl_d)
-        return f
+        f.pack(side="left", padx=(0, 32))
+        lbl = tk.Label(f, text=deger, font=self.f_stat, bg=BG, fg=ACCENT)
+        lbl.pack(anchor="w")
+        tk.Label(f, text=baslik, font=self.fu_sm, bg=BG, fg=TEXT_DIM).pack(anchor="w")
+        return lbl
 
-    def _renkle_metin(self, yazilan_len):
-        self.metin_canvas.config(state="normal")
-        self.metin_canvas.tag_remove("done", "1.0", "end")
-        self.metin_canvas.tag_remove("current", "1.0", "end")
-        self.metin_canvas.tag_remove("wrong", "1.0", "end")
-        self.metin_canvas.tag_remove("pending", "1.0", "end")
-
-        for i in range(len(self.hedef_metin)):
-            start = f"1.{i}"
-            end = f"1.{i+1}"
-            if i < yazilan_len:
-                if i in self.yanlis_pos:
-                    self.metin_canvas.tag_add("wrong", start, end)
-                else:
-                    self.metin_canvas.tag_add("done", start, end)
-            elif i == yazilan_len:
-                self.metin_canvas.tag_add("current", start, end)
+    def _renkle(self, n, yanlis_pos):
+        self.metin_c.config(state="normal")
+        for tag in ("done", "current", "wrong", "pending"):
+            self.metin_c.tag_remove(tag, "1.0", "end")
+        for i in range(len(self.hedef)):
+            s, e = f"1.{i}", f"1.{i+1}"
+            if i < n:
+                self.metin_c.tag_add("wrong" if i in yanlis_pos else "done", s, e)
+            elif i == n:
+                self.metin_c.tag_add("current", s, e)
             else:
-                self.metin_canvas.tag_add("pending", start, end)
+                self.metin_c.tag_add("pending", s, e)
+        self.metin_c.config(state="disabled")
 
-        self.metin_canvas.config(state="disabled")
-
-    def _kontrol(self, event=None):
+    def _kontrol(self, mod, seviye_idx):
         if self.bitti:
             return
-
         yazilan = self.giris.get("1.0", "end-1c")
-
         if yazilan and self.baslangic is None:
             self.baslangic = time.time()
 
         n = len(yazilan)
-        self.yanlis_pos = set()
+        yanlis = {i for i, c in enumerate(yazilan)
+                  if i < len(self.hedef) and c != self.hedef[i]}
 
-        for i, ch in enumerate(yazilan):
-            if i < len(self.hedef_metin) and ch != self.hedef_metin[i]:
-                self.yanlis_pos.add(i)
+        # Ses
+        if n > self.son_uzunluk:
+            if n - 1 < len(self.hedef) and yazilan[-1] != self.hedef[n - 1]:
+                self._hata_sayisi += 1
+                self.root.after(0, ses_yanlis)
+            else:
+                self.root.after(0, ses_dogru)
+        self.son_uzunluk = n
 
-        self._renkle_metin(n)
+        self._renkle(n, yanlis)
 
         if n > 0 and self.baslangic:
             gecen = time.time() - self.baslangic
             kelime = len(yazilan.split())
-            dak = gecen / 60
-            hiz = int(kelime / dak) if dak > 0 else 0
+            hiz = int(kelime / (gecen / 60)) if gecen > 0 else 0
             self.hiz_lbl.config(text=str(hiz))
 
-            dogru = sum(1 for i, c in enumerate(yazilan) if i < len(self.hedef_metin) and c == self.hedef_metin[i])
-            oran = int(dogru / max(n, 1) * 100)
+            dogru_n = sum(1 for i, c in enumerate(yazilan)
+                          if i < len(self.hedef) and c == self.hedef[i])
+            oran = int(dogru_n / max(n, 1) * 100)
             renk = GREEN if oran >= 90 else YELLOW if oran >= 70 else RED
             self.dogru_lbl.config(text=f"%{oran}", fg=renk)
+            self.hata_lbl.config(text=str(self._hata_sayisi))
 
-        if yazilan == self.hedef_metin:
+        if yazilan == self.hedef:
             self.bitti = True
-            self._bitis()
+            self._bitis(mod, seviye_idx)
 
-    def _sure_timer(self):
+    def _sure_tick(self):
         if self.bitti:
             return
         if self.baslangic:
-            gecen = int(time.time() - self.baslangic)
-            self.sure_lbl.config(text=f"{gecen}s")
-        self.root.after(500, self._sure_timer)
+            self.sure_lbl.config(text=f"{int(time.time()-self.baslangic)}s")
+        self.root.after(500, self._sure_tick)
 
-    def _bitis(self):
+    def _bitis(self, mod, seviye_idx):
         self.giris.config(state="disabled")
         gecen = time.time() - self.baslangic
         yazilan = self.giris.get("1.0", "end-1c")
-        kelime = len(yazilan.split())
-        dak = gecen / 60
-        hiz = int(kelime / dak) if dak > 0 else 0
-        dogru = sum(1 for i, c in enumerate(yazilan) if i < len(self.hedef_metin) and c == self.hedef_metin[i])
-        oran = int(dogru / len(self.hedef_metin) * 100)
+        hiz = int(len(yazilan.split()) / (gecen / 60)) if gecen > 0 else 0
+        dogru = sum(1 for i, c in enumerate(yazilan)
+                    if i < len(self.hedef) and c == self.hedef[i])
+        oran = int(dogru / len(self.hedef) * 100)
 
-        overlay = tk.Frame(self.container, bg=BG)
-        overlay.pack(pady=24, padx=40, fill="x")
+        if mod == "alistirma" and seviye_idx is not None and oran >= 80:
+            self.tamamlanan.add(seviye_idx)
+            if seviye_idx + 1 < len(SEVIYELER):
+                self.mevcut_seviye = seviye_idx + 1
 
-        tk.Frame(overlay, bg=BORDER, height=1).pack(fill="x", pady=(0, 20))
+        overlay = tk.Frame(self.root, bg=BG)
+        overlay.pack(pady=20, padx=40, fill="x")
+        tk.Frame(overlay, bg=BORDER, height=1).pack(fill="x", pady=(0, 16))
 
         row = tk.Frame(overlay, bg=BG)
         row.pack()
 
-        for val, lbl, renk in [(f"{hiz}", "DAK/KW", ACCENT), (f"%{oran}", "DOĞRULUK", GREEN if oran >= 90 else YELLOW), (f"{gecen:.1f}s", "SÜRE", ACCENT2)]:
+        renk_d = GREEN if oran >= 90 else YELLOW if oran >= 70 else RED
+        gec_bilgi = oran >= 80 and mod == "alistirma"
+
+        for val, lbl, renk in [
+            (f"{hiz}", "DAK/KW", ACCENT),
+            (f"%{oran}", "DOĞRULUK", renk_d),
+            (f"{gecen:.1f}s", "SÜRE", ACCENT2),
+            (f"{self._hata_sayisi}", "HATA", RED if self._hata_sayisi > 5 else GREEN),
+        ]:
             blk = tk.Frame(row, bg=PANEL, highlightthickness=1, highlightbackground=BORDER)
-            blk.pack(side="left", padx=12, ipadx=24, ipady=12)
+            blk.pack(side="left", padx=8, ipadx=20, ipady=10)
             tk.Label(blk, text=val, font=self.f_stat, bg=PANEL, fg=renk).pack()
-            tk.Label(blk, text=lbl, font=self.f_stat_lbl, bg=PANEL, fg=TEXT_DIM).pack()
+            tk.Label(blk, text=lbl, font=self.fu_sm, bg=PANEL, fg=TEXT_DIM).pack()
+
+        if mod == "alistirma":
+            if gec_bilgi:
+                msg = "✓ Seviye Geçildi!" if seviye_idx + 1 < len(SEVIYELER) else "🏆 Tüm Seviyeler Tamamlandı!"
+                tk.Label(overlay, text=msg, font=self.fu_lg, bg=BG, fg=GREEN).pack(pady=(12, 0))
+            else:
+                tk.Label(overlay, text="Geçmek için %80 doğruluk gerekli", font=self.fu_sm, bg=BG, fg=YELLOW).pack(pady=(12, 0))
 
         btn_row = tk.Frame(overlay, bg=BG)
-        btn_row.pack(pady=(20, 0))
-        self._btn(btn_row, "⚡  Tekrar Dene", lambda: self._goster_yaz(), accent=True).pack(side="left", padx=8)
-        self._btn(btn_row, "Yeni Metin", lambda: self._baslat()).pack(side="left", padx=8)
-        self._btn(btn_row, "Ana Menü", lambda: self._goster_menu()).pack(side="left", padx=8)
+        btn_row.pack(pady=(14, 0))
+        self._btn(btn_row, "⚡ Tekrar", lambda: self._yazma_ekrani(metin_uret(SEVIYELER[seviye_idx]) if seviye_idx is not None else random.choice(OZEL_METINLER or CUMLELER_TR), mod=mod, seviye_idx=seviye_idx), accent=True).pack(side="left", padx=6)
+        if mod == "alistirma" and gec_bilgi and seviye_idx + 1 < len(SEVIYELER):
+            self._btn(btn_row, "Sonraki Seviye →", lambda: self._baslat_alistirma(seviye_idx + 1)).pack(side="left", padx=6)
+        self._btn(btn_row, "Ana Menü", self._menu).pack(side="left", padx=6)
 
 
 if __name__ == "__main__":
-    HizliYaz()
+    App()
